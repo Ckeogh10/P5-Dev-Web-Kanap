@@ -29,18 +29,41 @@ function getProduct() {
     });
 }
 
-function createImg(parent, url, title) {
+function createImg(url, title) {
     let img = document.createElement("img");
+    let imgParent = document.getElementsByClassName('item__img')[0];
     img.src = url;
     img.alt = "Lorem ipsum dolor sit amet, " + title;
-    parent.appendChild(img);
-    console.log(img);
+    imgParent.appendChild(img);
+}
+
+function createTitle(title) {
+    let titleElement = document.getElementById('title');
+    titleElement.innerText = title;
+}
+
+function createPrice(price) {
+    let priceElement = document.getElementById('price');
+    priceElement.innerText = price;
+}
+
+function createDescription(description) {
+    let descriptionElement = document.getElementById('description');
+    descriptionElement.innerText = description;
+}
+
+function createColorList(colors) {
+    let createOption = new Option(colors, colors);
+    let colorsParent = document.getElementById('colors');
+    colorsParent.add(createOption);  
 }
 
 function createItem(data) {
-    let imgParent = document.getElementsByClassName('item__img');
-    console.log(imgParent);
-    createImg(imgParent, data.imageUrl, data.name);
+    createTitle(data.name);
+    createImg(data.imageUrl, data.name);
+    createPrice(data.price);
+    createDescription(data.description);
+    data.colors.forEach(createColorList);
 }
 
 getProduct()
