@@ -93,22 +93,27 @@ function saveProduct() {
     let productColor = document.getElementById('colors').value;
     let productQuantity = document.getElementById('quantity').value;
     let product = {ID: productId, color: productColor, quantity: productQuantity}
-    if (productColor === "") {
-        alert("Attention! La couleur choisie n'est pas valide!")
-        return
+    if (productColor === "" || productQuantity === '0') {
+        alert("Attention! Veillez bien choisir une couleur ou une quantité correcte!")
+        return false
     } else {
         return product;
     }
 }
 
 function addProductToCart(product) {
-    if (check(cart, product) === true) {
+    if (product === false) {
+        return
+    } else {
+        if (check(cart, product) === true) {
         alert('Ce produit est déjà dans votre panier. La quantité a donc était augmentée!')
         return true
     }   else {
         alert('Votre produit à été ajouté à votre panier!')
         cart.push(product);
     }
+    }
+    
 }
 
 function check(cart, product) {  
