@@ -113,6 +113,11 @@ function createQuantityInput(i, data, parent) {
     quantityButtonFunctionality(input, data)
 }
 
+// Function that adds an event listener to input. When input changes changeCartItem is called. This function changes the value of the corresponding cart and totalQuantity 
+// arrays (see deleteCartItem for more info on the loop) to match the new value. It then removes the corresponding price from totalPrice and replaces it with a new value 
+// that it gets from the updatePrice() function. This function takes the current value (i.e. the changed quantity) and multiplies it with the price (which it takes from the data
+// parameter passed down from createItem()). After this cart is saved and the total price and quantity are recalculated.
+
 function quantityButtonFunctionality(input, data) {
     input.addEventListener('change', function(event) {
         let inputChanged = event.target;
@@ -131,13 +136,13 @@ function changeCartItem(id, color, value, data) {
             totalQuantity[i] = parseInt(value);
             totalPrice.splice(i, 1, updatePrice(data.price, value))
             saveCart(cart);
-            changeTotal()
+            updateTotal()
             console.log(totalPrice)
         }
       } 
 }
 
-// Function for delete button
+// Function for the creation of the delete buttons
 
 function createContentDelete(contentParent) {
     let deleteParent = document.createElement('div');
@@ -149,6 +154,10 @@ function createContentDelete(contentParent) {
     deleteParent.appendChild(deleteBtn);
     deleteButtonFunctionality(deleteBtn);
 }
+
+// Function that adds an event listener to deleteBtn. When clicked it will remove the closest article of its target. deleteCartItem is attached to it, which will
+// loop through cart and find the object that contains both the id and color taken from the article's dataset. Once found, that object will be removed from cart and
+// the values it created in totalPrice and totalQuantity will also be removed. The cart is then saved and the total price and quantity are recalculated.
 
 function deleteButtonFunctionality(deleteBtn) {
     deleteBtn.addEventListener('click', function(event) {
@@ -164,12 +173,12 @@ function deleteButtonFunctionality(deleteBtn) {
 function deleteCartItem(id, color) {
     for (let i = 0; i < cart.length; i++) {
         if (id === cart[i].ID && color === cart[i].color) {
-            cart.splice(i, 1)
-            totalPrice.splice(i, 1)
-            totalQuantity.splice(i, 1)
+            cart.splice(i, 1);
+            totalPrice.splice(i, 1);
+            totalQuantity.splice(i, 1);
+            productsArray.splice(i, 1);
             saveCart(cart);
-            changeTotal()
-            console.log(totalPrice)
+            updateTotal();
         }
       } 
 }
@@ -226,10 +235,10 @@ function createItem(data, i) {
     createContentDescription(i, data);
     createContentSettings(i, data);
     createTotal(data.price, cart[i].quantity)
-    console.log(totalPrice)
+    productsArray.push(cart[i].ID)
 }
 
-getProduct()
+// Functions used to update total quantity/price --- Refer to deleteCartItem and changeCartItem found under createContentSettings for more details
 
 function updatePrice(price, quantity) {
     let sum = price * quantity;
@@ -247,10 +256,175 @@ function updateTotalQuantity() {
     return sum
 }
 
-async function changeTotal() {
+async function updateTotal() {
     let totalQuantity = document.getElementById('totalQuantity');
     let totalPrice = document.getElementById('totalPrice');
     totalPrice.innerText = await updateTotalPrice();
     totalQuantity.innerText = await updateTotalQuantity();
-
 }
+
+function order() {
+    fetch("http://localhost:3000/api/products/order")
+    .then(function(response) {
+        if (response.ok) {
+            return response.json();
+        }
+    })
+    .then(function(data) {
+        console.log(data);
+    })
+    .catch(function(error) {
+        // An error has occured
+    });
+}
+
+// Functions that verify user input
+
+function formVerification() {
+    let firstName = document.getElementById('firstName');
+    let lastName = document.getElementById('lastName');
+    let city = document.getElementById('city');
+    let addressInput = document.getElementById('address');
+    let emailInput = document.getElementById('email');
+    firstNameVerification(firstName);
+    lastNameVerification(lastName);
+    addressVerification(addressInput);
+    cityVerification(city);
+    emailVerification(emailInput);
+    finalVerification(firstName, lastName, addressInput, city, emailInput)
+}
+
+function finalVerification(firstName, lastName, address, city, email) {
+    let submitBtn = document.getElementById('order')
+
+    submitBtn.onclick = (e) => {
+    if (nameTest(firstName.value) == true &&
+        nameTest(lastName.value) == true &&
+        addressTest(address.value) == true &&
+        nameTest(city.value) == true &&
+        emailTest(email.value) == true) {
+            console.log('FORM VALIDATED')
+            order()
+            e.preventDefault()
+            return true
+        }
+        else {
+            alert('Vos informations ne sont pas toutes valides!')
+            e.preventDefault()
+            return false
+        }
+}
+    
+}
+
+function firstNameVerification(firstName) {
+    firstName.addEventListener('input', function(event) {
+        let name = event.target.value;
+        if (nameTest(name) == true) {
+            document.getElementById('firstNameErrorMsg').innerText = ''
+            return true
+        } else {
+            document.getElementById('firstNameErrorMsg').innerText = 'Prénom invalide!'
+            return false
+        }
+    })
+}
+
+function lastNameVerification(lastName) {
+    lastName.addEventListener('input', function(event) {
+        let name = event.target.value;
+        if (nameTest(name) == true) {
+            document.getElementById('lastNameErrorMsg').innerText = ''
+            return true
+        } else {
+            document.getElementById('lastNameErrorMsg').innerText = 'Nom invalide!'
+            return false
+        }
+    })
+}
+
+function addressVerification(addressInput) {
+    addressInput.addEventListener('input', function(event) {
+        let address = event.target.value;
+        if (addressTest(address) == true) {
+            document.getElementById('addressErrorMsg').innerText = ''
+            return true
+        } else {
+            document.getElementById('addressErrorMsg').innerText = 'Addresse invalide! Veillez bien mettre le numéro de l`adresse puis l`adresse elle même.'
+            return false
+        }
+    })
+}
+
+function cityVerification(city) {
+    city.addEventListener('input', function(event) {
+        let name = event.target.value;
+        if (nameTest(name) == true) {
+            document.getElementById('cityErrorMsg').innerText = ''
+            return true
+        } else {
+            document.getElementById('cityErrorMsg').innerText = 'Nom de ville invalide!'
+            return false
+        }
+    })
+}
+
+function emailVerification(emailInput) {
+    emailInput.addEventListener('input', function(event) {
+        let email = event.target.value;
+        if (emailTest(email) == true) {
+            document.getElementById('emailErrorMsg').innerText = ''
+            return true
+        } else {
+            document.getElementById('emailErrorMsg').innerText = 'Email invalide!'
+            return false
+        }
+    })
+}
+
+function nameTest(name) {
+    return /^[A-Z][a-zA-Z-àâäèéêëîïôœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ.]{1,20}$/.test(name);
+}
+
+function addressTest(address) {
+    return /^\d{1,5}\s[a-zA-Z- 0-9àâäèéêëîïôœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ.]{1,40}$/.test(address);
+}
+
+function emailTest(email) {
+    return /^[\w.+]{1,25}[@]{1}[a-zA-Z-àâäèéêëîïôœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ]{1,15}[.]{1}[a-zA-Z-àâäèéêëîïôœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ]{1,10}$/.test(email)
+}
+
+const contactArray = {
+    firstName: document.getElementById('firstName').value,
+    lastName: document.getElementById('lastName').value,
+    address: document.getElementById('address').value,
+    city: document.getElementById('city').value,
+    email: document.getElementById('email').value,
+}; 
+
+const productsArray = []
+
+async function sendInfo() {
+    let order = await fetch('http://localhost:3000/api/products/order', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: 
+        contact: {
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            address: document.getElementById('address').value,
+            city: document.getElementById('city').value,
+            email: document.getElementById('email').value
+        }
+        products: [JSON.stringify(productsArray)]
+});
+    let result = await order.json();
+    console.log(result);
+};
+
+getProduct()
+
+formVerification()
