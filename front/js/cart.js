@@ -21,10 +21,25 @@ function getProduct() {
     Promise.all(cart.map(c => fetch(url + c.ID).then(d => d.json())))
     .then(function(data) {
         console.log(data);
+        data.sort((a, b) => {
+            const nameA = a.name.toUpperCase();
+            const nameB = b.name.toUpperCase();
+            if (nameA < nameB) {
+              return -1;
+            }
+            if (nameA > nameB) {
+              return 1;
+            }
+            return 0;
+          });
         data.forEach(createItem)
     }) 
     
 }
+
+// The getProduct() function had to change to ensure all products load correctly upon entering the page. Using Promise.all ensures that the function will wait until the data
+// of every product within the cart array is fetched before the createItem function is called. Without this many display errors occur as the page fails to fully load one product's
+// data before moving onto the next. We also sort the data by name using data.sort to ensure that all products are correctly grouped together.
 
 function createImg(item, url) {
     let imgParent = document.createElement('div');
@@ -98,8 +113,6 @@ function createQuantityText(parent) {
     text.innerText = 'Qté : '
     parent.appendChild(text);
 }
-
-// 
 
 function createQuantityInput(i, data, parent) {
     let input = document.createElement('input');
@@ -176,7 +189,7 @@ function deleteCartItem(id, color) {
             cart.splice(i, 1);
             totalPrice.splice(i, 1);
             totalQuantity.splice(i, 1);
-            productsArray.splice(i, 1);
+            products.splice(i, 1);
             saveCart(cart);
             updateTotal();
         }
@@ -235,7 +248,7 @@ function createItem(data, i) {
     createContentDescription(i, data);
     createContentSettings(i, data);
     createTotal(data.price, cart[i].quantity)
-    productsArray.push(cart[i].ID)
+    products.push(cart[i].ID)
 }
 
 // Functions used to update total quantity/price --- Refer to deleteCartItem and changeCartItem found under createContentSettings for more details
@@ -263,22 +276,10 @@ async function updateTotal() {
     totalQuantity.innerText = await updateTotalQuantity();
 }
 
-function order() {
-    fetch("http://localhost:3000/api/products/order")
-    .then(function(response) {
-        if (response.ok) {
-            return response.json();
-        }
-    })
-    .then(function(data) {
-        console.log(data);
-    })
-    .catch(function(error) {
-        // An error has occured
-    });
-}
-
-// Functions that verify user input
+// Functions that verify user input. formVerification allows for instant user feedback as they fill the form out. finalVerification verifies both the contact (with the checkContact
+// function) and product info (with the checkProducts function) upon clicking the submit button and if both are valid it will add the user's info to contact{} and begin the 
+// POST request.
+ 
 
 function formVerification() {
     let firstName = document.getElementById('firstName');
@@ -298,24 +299,52 @@ function finalVerification(firstName, lastName, address, city, email) {
     let submitBtn = document.getElementById('order')
 
     submitBtn.onclick = (e) => {
-    if (nameTest(firstName.value) == true &&
-        nameTest(lastName.value) == true &&
-        addressTest(address.value) == true &&
-        nameTest(city.value) == true &&
-        emailTest(email.value) == true) {
-            console.log('FORM VALIDATED')
-            order()
+    if (checkContact(firstName, lastName, address, city, email) == true && checkProducts() == true) {
+
+            contact.firstName = firstName.value;
+            contact.lastName = lastName.value;
+            contact.address = address.value;
+            contact.city = city.value;
+            contact.email = email.value
+
+            sendOrder()
             e.preventDefault()
             return true
         }
         else {
-            alert('Vos informations ne sont pas toutes valides!')
             e.preventDefault()
             return false
         }
+
 }
     
 }
+
+function checkContact(firstName, lastName, address, city, email) {
+    if (nameTest(firstName.value) == true &&
+        nameTest(lastName.value) == true &&
+        addressTest(address.value) == true &&
+        nameTest(city.value) == true &&
+        emailTest(email.value)) {
+            return true
+        } else {
+            alert('Vos informations ne sont pas toutes valides!')
+            return false
+        }
+}
+
+function checkProducts() {
+    if (products == null || products.length < 1) {
+        alert('Votre panier est vide!')
+        return false
+    } else {
+        return true
+    }
+}
+
+// The information verification tests. Each input has its own individual event listener but there are only 3 tests: name, address and email. First, last and city name all share
+// a test whereas email and address have their own test. The Test functions do the real work and as such are used by both the checkContact function (which is used as the final
+// test before the information is sent) and the Verification functions (which are used for instant user feedback).
 
 function firstNameVerification(firstName) {
     firstName.addEventListener('input', function(event) {
@@ -394,36 +423,46 @@ function emailTest(email) {
     return /^[\w.+]{1,25}[@]{1}[a-zA-Z-àâäèéêëîïôœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ]{1,15}[.]{1}[a-zA-Z-àâäèéêëîïôœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ]{1,10}$/.test(email)
 }
 
-const contactArray = {
-    firstName: document.getElementById('firstName').value,
-    lastName: document.getElementById('lastName').value,
-    address: document.getElementById('address').value,
-    city: document.getElementById('city').value,
-    email: document.getElementById('email').value,
-}; 
+let contact = {}; 
 
-const productsArray = []
+let products = []
 
-async function sendInfo() {
-    let order = await fetch('http://localhost:3000/api/products/order', {
+function sendOrder() {
+    let orderInfo = {
+        contact,
+        products
+    };
+    let order = {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        body: 
-        contact: {
-            firstName: document.getElementById('firstName').value,
-            lastName: document.getElementById('lastName').value,
-            address: document.getElementById('address').value,
-            city: document.getElementById('city').value,
-            email: document.getElementById('email').value
+        body: JSON.stringify(orderInfo),
+}
+    fetch('http://localhost:3000/api/products/order', order)
+    .then((response) => {
+        if (response.status == 201) {
+            return response.json();
+        } else {
+            console.log('POST error!')
         }
-        products: [JSON.stringify(productsArray)]
-});
-    let result = await order.json();
-    console.log(result);
+    })
+    .then((data) => {
+        console.log(data)
+        finalConfirmation(data.orderId)
+    })
 };
+
+// The above code is how we get the order's ID from the server. The sendOrder() function is called by the finalVerification() function which checks the validity of the contact and
+// product information. If they are valid then sendOrder() takes the contact and product arrays and places them within orderInfo. We then create a POST method named 
+// order which will stringify orderInfo. Finally we use the fetch function to send the order to the server. If the response is valid then it will be returned, changed into
+// json and passed to the finalConfirmation() function which will send the user to the confirmation page after inserting the orderId into the page's URL.
+
+function finalConfirmation(orderId) {
+    localStorage.clear();
+    window.location.href = 'confirmation.html?' + 'id=' + orderId;
+}
 
 getProduct()
 
